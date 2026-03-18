@@ -7,6 +7,7 @@ import MusicWindow from "@/components/desktop/MusicWindow"
 import WebWindow from "@/components/desktop/WebWindow"
 import AboutWindow from "@/components/desktop/AboutWindow"
 import { useRouter } from "next/navigation"
+import { useAudioReactive } from "@/components/AudioContext"
 
 const FOLDERS = [
   { id: "artwork", label: "Artwork", icon: "🎨", x: 40, y: 40 },
@@ -20,6 +21,7 @@ export default function Desktop() {
   const [time, setTime] = useState("")
   const [openWindows, setOpenWindows] = useState<string[]>([])
   const router = useRouter()
+  const { bassLevel } = useAudioReactive()
 
   useEffect(() => {
     const update = () =>
@@ -45,7 +47,15 @@ export default function Desktop() {
   }
 
   return (
-    <div style={styles.desktop}>
+    <div style={{
+        ...styles.desktop,
+        boxShadow: bassLevel > 0.3
+          ? `inset 0 0 ${bassLevel * 200}px rgba(255, 0, 0, ${bassLevel * 0.8})`
+          : "none",
+        backgroundColor: bassLevel > 0.5
+          ? `rgb(${Math.round(bassLevel * 40)}, 0, 0)`
+          : "#000",
+      }}>
 
       {FOLDERS.map((folder) => (
         <div

@@ -1,6 +1,7 @@
 "use client"
 
 import { useRef, useState, useEffect } from "react"
+import { useAudioReactive } from "@/components/AudioContext"
 
 const TRACKS = [
   "5 mintues.wav",
@@ -24,33 +25,71 @@ export default function MusicWindow() {
   const [progress, setProgress] = useState(0)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const animRef = useRef<number>(0)
+  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null)
+  const { setBassLevel, analyserRef, audioCtxRef } = useAudioReactive()
 
   const playTrack = (index: number) => {
     if (audioRef.current) {
       audioRef.current.pause()
-      cancelAnimationFrame(animRef.current!)
+      cancelAnimationFrame(animRef.current)
     }
 
     const audio = new Audio(`/music/${TRACKS[index]}`)
+    audio.crossOrigin = "anonymous"
     audioRef.current = audio
     setCurrentTrack(index)
     setProgress(0)
 
+    // Set up Web Audio API
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new AudioContext()
+    }
+
+    const audioCtx = audioCtxRef.current
+
+    // Create analyser
+    const analyser = audioCtx.createAnalyser()
+    analyser.fftSize = 256
+    analyserRef.current = analyser
+
+    // Connect source → analyser → output
+    if (sourceRef.current) {
+      sourceRef.current.disconnect()
+    }
+    const source = audioCtx.createMediaElementSource(audio)
+    sourceRef.current = source
+    source.connect(analyser)
+    analyser.connect(audioCtx.destination)
+
     audio.play()
     setPlaying(true)
 
-    const updateProgress = () => {
+    const dataArray = new Uint8Array(analyser.frequencyBinCount)
+
+    const tick = () => {
+      if (!analyserRef.current) return
+
+      // Update progress
       if (audio.duration) {
         setProgress((audio.currentTime / audio.duration) * 100)
       }
-      animRef.current = requestAnimationFrame(updateProgress)
+
+      // Read bass frequencies (first 8 bins = roughly 0-200hz)
+      analyserRef.current.getByteFrequencyData(dataArray)
+      const bassSum = dataArray.slice(0, 8).reduce((a, b) => a + b, 0)
+      const bassAvg = bassSum / 8 / 255 // normalise 0-1
+      setBassLevel(bassAvg)
+
+      animRef.current = requestAnimationFrame(tick)
     }
-    animRef.current = requestAnimationFrame(updateProgress)
+
+    animRef.current = requestAnimationFrame(tick)
 
     audio.onended = () => {
       setPlaying(false)
       setProgress(0)
-      cancelAnimationFrame(animRef.current!)
+      setBassLevel(0)
+      cancelAnimationFrame(animRef.current)
     }
   }
 
@@ -58,9 +97,11 @@ export default function MusicWindow() {
     if (!audioRef.current) return
     if (playing) {
       audioRef.current.pause()
+      audioCtxRef.current?.suspend()
       setPlaying(false)
     } else {
       audioRef.current.play()
+      audioCtxRef.current?.resume()
       setPlaying(true)
     }
   }
@@ -68,14 +109,13 @@ export default function MusicWindow() {
   useEffect(() => {
     return () => {
       audioRef.current?.pause()
-      cancelAnimationFrame(animRef.current!)
+      cancelAnimationFrame(animRef.current)
+      setBassLevel(0)
     }
   }, [])
 
   return (
     <div style={styles.container}>
-
-      {/* Track list */}
       <div style={styles.trackList}>
         {TRACKS.map((track, i) => (
           <div
@@ -96,7 +136,6 @@ export default function MusicWindow() {
         ))}
       </div>
 
-      {/* Player bar */}
       <div style={styles.playerBar}>
         <div style={styles.nowPlaying}>
           {currentTrack !== null
@@ -112,12 +151,10 @@ export default function MusicWindow() {
           <button style={styles.btn} onClick={() => currentTrack !== null && playTrack(Math.min(TRACKS.length - 1, currentTrack + 1))}>▶▶</button>
         </div>
 
-        {/* Progress bar */}
         <div style={styles.progressOuter}>
           <div style={{ ...styles.progressInner, width: `${progress}%` }} />
         </div>
       </div>
-
     </div>
   )
 }
