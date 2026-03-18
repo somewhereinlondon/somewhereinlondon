@@ -23,7 +23,7 @@ export default function MusicWindow() {
   const [playing, setPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
   const audioRef = useRef<HTMLAudioElement | null>(null)
-  const animRef = useRef<number>()
+  const animRef = useRef<number>(0)
 
   const playTrack = (index: number) => {
     if (audioRef.current) {
