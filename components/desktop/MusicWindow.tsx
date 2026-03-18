@@ -31,7 +31,7 @@ export default function MusicWindow() {
       cancelAnimationFrame(animRef.current!)
     }
 
-    const audio = new Audio(`/Music/${TRACKS[index]}`)
+    const audio = new Audio(`/music/${TRACKS[index]}`)
     audioRef.current = audio
     setCurrentTrack(index)
     setProgress(0)
