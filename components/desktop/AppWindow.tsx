@@ -18,15 +18,26 @@ export default function AppWindow({
   height = 400,
 }: Props) {
   const windowRef = useRef<HTMLDivElement>(null)
-  const [pos, setPos] = useState({ x: 100, y: 80 })
+  const [pos, setPos] = useState({ x: 20, y: 40 })
   const dragging = useRef(false)
   const offset = useRef({ x: 0, y: 0 })
 
+  // Mouse drag
   const onMouseDown = (e: React.MouseEvent) => {
     dragging.current = true
     offset.current = {
       x: e.clientX - pos.x,
       y: e.clientY - pos.y,
+    }
+  }
+
+  // Touch drag
+  const onTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0]
+    dragging.current = true
+    offset.current = {
+      x: touch.clientX - pos.x,
+      y: touch.clientY - pos.y,
     }
   }
 
@@ -38,30 +49,59 @@ export default function AppWindow({
         y: e.clientY - offset.current.y,
       })
     }
+
     const onMouseUp = () => {
       dragging.current = false
     }
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!dragging.current) return
+      const touch = e.touches[0]
+      setPos({
+        x: touch.clientX - offset.current.x,
+        y: touch.clientY - offset.current.y,
+      })
+    }
+
+    const onTouchEnd = () => {
+      dragging.current = false
+    }
+
     window.addEventListener("mousemove", onMouseMove)
     window.addEventListener("mouseup", onMouseUp)
+    window.addEventListener("touchmove", onTouchMove)
+    window.addEventListener("touchend", onTouchEnd)
+
     return () => {
       window.removeEventListener("mousemove", onMouseMove)
       window.removeEventListener("mouseup", onMouseUp)
+      window.removeEventListener("touchmove", onTouchMove)
+      window.removeEventListener("touchend", onTouchEnd)
     }
   }, [])
+
+  // Make windows fit mobile screen
+  const maxWidth = typeof window !== "undefined" ? window.innerWidth - 20 : width
+  const maxHeight = typeof window !== "undefined" ? window.innerHeight - 60 : height
+  const actualWidth = Math.min(width, maxWidth)
+  const actualHeight = Math.min(height, maxHeight)
 
   return (
     <div
       ref={windowRef}
       style={{
         ...styles.window,
-        width,
-        height,
+        width: actualWidth,
+        height: actualHeight,
         left: pos.x,
         top: pos.y,
       }}
     >
-      {/* Title bar */}
-      <div style={styles.titleBar} onMouseDown={onMouseDown}>
+      <div
+        style={styles.titleBar}
+        onMouseDown={onMouseDown}
+        onTouchStart={onTouchStart}
+      >
         <span style={styles.titleText}>{title}</span>
         <div style={styles.controls}>
           <button style={styles.controlBtn}>─</button>
@@ -69,13 +109,12 @@ export default function AppWindow({
           <button
             style={{ ...styles.controlBtn, ...styles.closeBtn }}
             onClick={onClose}
+            onTouchEnd={onClose}
           >
             ✕
           </button>
         </div>
       </div>
-
-      {/* Content */}
       <div style={styles.content}>{children}</div>
     </div>
   )
@@ -100,6 +139,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     cursor: "grab",
     userSelect: "none",
+    touchAction: "none",
   },
   titleText: {
     color: "#000",
@@ -115,8 +155,8 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundColor: "#000",
     color: "#39ff14",
     border: "1px solid #39ff14",
-    width: "20px",
-    height: "20px",
+    width: "24px",
+    height: "24px",
     fontSize: "0.6rem",
     cursor: "pointer",
     display: "flex",

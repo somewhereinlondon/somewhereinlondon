@@ -52,6 +52,7 @@ export default function Desktop() {
           key={folder.id}
           style={{ ...styles.folder, left: folder.x, top: folder.y }}
           onDoubleClick={() => openWindow(folder.id)}
+onTouchEnd={() => openWindow(folder.id)}
         >
           <div style={styles.folderIcon}>{folder.icon}</div>
           <div style={styles.folderLabel}>{folder.label}</div>
