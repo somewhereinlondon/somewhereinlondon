@@ -47,15 +47,7 @@ export default function Desktop() {
   }
 
   return (
-    <div style={{
-        ...styles.desktop,
-        boxShadow: bassLevel > 0.3
-          ? `inset 0 0 ${bassLevel * 200}px rgba(255, 0, 0, ${bassLevel * 0.8})`
-          : "none",
-        backgroundColor: bassLevel > 0.5
-          ? `rgb(${Math.round(bassLevel * 40)}, 0, 0)`
-          : "#000",
-      }}>
+    <div style={styles.desktop}>
 
       {FOLDERS.map((folder) => (
         <div
