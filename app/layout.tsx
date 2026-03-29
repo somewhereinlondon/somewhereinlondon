@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { VT323, Share_Tech_Mono } from "next/font/google"
+import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 
 const vt323 = VT323({
@@ -28,6 +29,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${vt323.variable} ${shareTechMono.variable}`}>
         {children}
+        <Analytics />
       </body>
     </html>
   )
